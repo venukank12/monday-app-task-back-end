@@ -1,4 +1,5 @@
 const configuration = require('../../../models/configuration');
+const Data = require('../../../models/data');
 const { getColumnValue } = require('../../../services/monday-service');
 const changeToDuplicateStatus = require('./changeToDuplicateStatus');
 const moveToDuplicateGroup = require('./moveToDuplicateGroup');
@@ -23,9 +24,23 @@ module.exports = async (req, res) => {
 
     if (!columnValue) return res.status(200).send({ status: 'success!' });
 
+    await Data.findOneAndUpdate(
+      {
+        userId,
+        boardId,
+        itemId,
+        columnId,
+      },
+      { userId, boardId, itemId, columnId, itemColumnValues: columnValue },
+      {
+        new: true, // Return the modified document instead of the original
+        upsert: true, // Create the document if it doesn't exist
+      }
+    );
+
     const duplicateFound = await getColumnValue(shortLivedToken, itemId, config.configField);
 
-    if (!duplicateFound) return res.status(200).send({ status: 'no duplicates!' });;
+    if (!duplicateFound) return res.status(200).send({ status: 'no duplicates!' });
 
     switch (config.configActionType.value) {
       case 'CHANGE_TO_DUPLICATE_STATUS':
